@@ -91,10 +91,6 @@ class Statemachine():
         tempState.run = wait_for_peers
 
         tempState = self.State("start_new_round")
-        def start_new_round_entry():
-            self.commited_answers = 0
-        tempState.entry = start_new_round_entry
-        
         def start_new_round():
             self.question = input("\n What is your question? \n")
             self.answer_a = input("Enter answer possibility a: ")
@@ -132,7 +128,17 @@ class Statemachine():
                 self.switchToState("play_game")
         tempState.run = wait_for_start
 
+        def wait_for_start_exit():
+            self.middleware.unSubscribeTCPUnicastListener(self.onReceiveNewRound)
+            self.middleware.unSubscribeTCPUnicastListener(self.collectInput)
+        tempState.exit = wait_for_start_exit
+
         tempState = self.State("play_game")
+        def play_game_entry():
+            self.middleware.subscribeTCPUnicastListener(self.onReceiveNewRound)
+            self.middleware.subscribeTCPUnicastListener(self.collectInput)
+        tempState.entry = play_game_entry
+
         def play_game():
             if not self.answered:
                 print(f"Question: {self.question_answer[0]}")
@@ -181,11 +187,9 @@ class Statemachine():
                 self.question_answer = ast.literal_eval(messageData)
 
     def collectInput(self, messengerUUID, clientsocket, messageCommand, messageData):
-        print("\n Received \n")
-        print(self.question_answer)
-        print(self.commited_answers)
-        print(self.answered)
         if messageCommand == 'playerResponse':
+            #print(f"own UUID {self.middleware.MY_UUID}")
+            #print(f"Messenger UUID {messengerUUID}")
             self.commited_answers += 1
             if messageData == self.question_answer[-1]:
                 self.players.addPoints(messengerUUID, 10)

@@ -47,6 +47,7 @@ class Middleware():
             uuidList = list(ordered)
             if uuidList[ownIndex - 1] != ownUUID:
                 return uuidList[ownIndex - 1]
+                
 
     def _sendHeartbeats(self):
         ctr = 0
@@ -166,12 +167,13 @@ class Middleware():
         if command == 'voting':
             if data == Middleware.MY_UUID:
                 print('\nI am the new Game-Master\n')
-                self.multicastReliable('leaderElected', Middleware.MY_UUID)
                 self.leaderUUID = Middleware.MY_UUID
                 self.statemashine.switchToState("start_new_round")
+                self.multicastReliable('leaderElected', Middleware.MY_UUID)
             elif data < Middleware.MY_UUID:
                 command = 'voting'
                 data = Middleware.MY_UUID
+                print('\nsend voting command with own UUID (' + data + ') to lowerNeighbour\n')
                 self.sendTcpMessageTo(self.findLowerNeighbour(), command, data)
             elif data > Middleware.MY_UUID:
                 command = 'voting'
@@ -180,9 +182,6 @@ class Middleware():
         elif command == 'leaderElected':
             print('new Leader got elected\n')
             self.leaderUUID = data
-            self.answered = False
-            self.question_answer = ''
-            self.commited_answers = 0
             self.statemashine.switchToState("wait_for_start")
 
 
